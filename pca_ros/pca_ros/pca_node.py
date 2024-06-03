@@ -1,25 +1,8 @@
-# Copyright 2016 Open Source Robotics Foundation, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import rclpy
 from rclpy.node import Node
-
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
-
-print("Initializing IO System - import")
 import time
 import adafruit_pca9685
 from adafruit_servokit import ServoKit
@@ -27,40 +10,33 @@ import serial
 import board
 import busio
 
-global thrinit, strinit, maxr, minl, maxthr, minthr
+global throttle_input, steering_input, right_steer_angle, left_steer_angle, max_throttle, min_throttle
 
 kit = ServoKit(channels=16, address=0x40)
-print("Initializing IO System - kit")
 
 i2c = busio.I2C(board.SCL, board.SDA)
-print("Initializing IO System - board")
 pca = adafruit_pca9685.PCA9685(i2c)
-print("Initializing IO System - pca")
 
 #kit.set_pwm_freq(50)
 #pca.setPWMFreq(50)
-print("Initializing IO System - freq")
 pca.frequency = 100
 
 
-maxr=135
-minl=30
-maxthr=125
-minthr= 65
-thrinit = 90
-strinit = 85
+right_steer_angle=135
+left_steer_angle=30
+max_throttle=125
+min_throttle= 65
+throttle_input = 90
+steering_input = 85
 
-print("Initializing Propulsion System")
-kit.servo[0].angle = thrinit
+kit.servo[0].angle = throttle_input
 time.sleep(1)
 
-print("Initializing Steering System")
-kit.servo[1].angle = strinit
+kit.servo[1].angle = steering_input
 
-bs1=180-thrinit
+bs1=180-throttle_input
 kit.servo[2].angle = bs1
 
-print("Listener Node Started...")
 
 
 class MinimalSubscriber(Node):
@@ -90,28 +66,31 @@ class MinimalSubscriber(Node):
         if oldstrvalue <0:
             oldstrvalue = -oldstrvalue
             
-            newstrvalue=int(strinit+(oldstrvalue*((maxr-strinit)/3)))
+            newstrvalue=int(steering_input+(oldstrvalue*((right_steer_angle-steering_input)/3)))
         else:
-            newstrvalue=int(strinit-(oldstrvalue*((strinit-minl)/3)))
+            newstrvalue=int(steering_input-(oldstrvalue*((steering_input-left_steer_angle)/3)))
             
  #       if oldthrvalue <0:
   #          oldthrvalue = oldthrvalue + 1
 
-        if newstrvalue >maxr:
-            newstrvalue = maxr
-        if newstrvalue <minl:
-            newstrvalue = minl           
+        if newstrvalue >right_steer_angle:
+            newstrvalue = right_steer_angle
+        if newstrvalue <left_steer_angle:
+            newstrvalue = left_steer_angle           
        
        
         oldthrrange = 2
-        newthrrange = maxthr-minthr
+        newthrrange = max_throttle
+    -min_throttle
         newthrvalue = int(((oldthrvalue) * (newthrrange)+90))
 
-        if newthrvalue >maxthr:
-            newthrvalue = maxthr 
+        if newthrvalue >max_throttle
+    :
+            newthrvalue = max_throttle
+         
 
-        if newthrvalue <minthr:
-            newthrvalue = minthr 
+        if newthrvalue <min_throttle:
+            newthrvalue = min_throttle 
 
         move_robot(newthrvalue, newstrvalue)
         
@@ -127,10 +106,10 @@ def move_robot(thrnum,strnum):
     kit.servo[0].angle = thrnum
 
     kit.servo[1].angle = strnum
-    if strnum>strinit:
-        bs1=strinit-(strnum-strinit)
+    if strnum>steering_input:
+        bs1=steering_input-(strnum-steering_input)
     else:
-        bs1= strinit+(strinit-strnum)
+        bs1= steering_input+(steering_input-strnum)
 
     print(bs1)
     kit.servo[2].angle = bs1        
